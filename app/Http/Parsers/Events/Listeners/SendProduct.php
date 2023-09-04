@@ -44,9 +44,25 @@ class SendProduct
 {$product->getDesc()}
 ";
         }
+
+        $productFromBd = \Illuminate\Support\Facades\DB::table('products')
+            ->where('ext_id', '=', $product->getExtId())
+            ->where('posted', '=', true)
+            ->get();
+
+        if ($productFromBd->count() > 0) {
+            return;
+        }
+
         /** @var \DefStudio\Telegraph\Models\TelegraphChat $chat */
         $send = $chat->html($html)->photo($product->getImg())->keyboard(Keyboard::make()->buttons([
             Button::make('Перейти к скидке')->url($product->getLink()),
         ]))->send();
+
+        \App\Models\Product::updateOrCreate([
+            "ext_id" => $product->getExtId(),
+        ], [
+            "posted" => true,
+        ]);
     }
 }

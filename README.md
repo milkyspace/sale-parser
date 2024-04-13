@@ -10,9 +10,9 @@ chmod 777 -R database
 
 ./vendor/bin/sail artisan schedule:work
 
-**FIXES**
-- Error starting userland proxy: listen tcp4 0.0.0.0:80: bind: address already in use
-sudo lsof -i:8080
-kill *ID*
-./vendor/bin/sail down
-./vendor/bin/sail up
+## FIXES
+### Error starting userland proxy: listen tcp4 0.0.0.0:80: bind: address already in use
+1. sudo lsof -i:8080
+2. kill *ID*
+3. ./vendor/bin/sail down
+4. ./vendor/bin/sail up

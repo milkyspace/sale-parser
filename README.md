@@ -1,18 +1,28 @@
-# sale-parser
-Scan the links to discounts and send them to telegram
+# SALEPARSER
+## _The Telegram Bot With Discounts_
 
-Quick start:
+![Build Status](https://github.com/cicirello/user-statistician/actions/workflows/build.yml/badge.svg)
 
+Discount links are sent to your Telegram
+
+## Installation
+
+Install the dependencies and start the server.
+
+```sh
 chown -R www-data:www-data database/
 chmod 777 -R database
-
 ./vendor/bin/sail up
-
 ./vendor/bin/sail artisan schedule:work
+```
 
 ## FIXES
-### Error starting userland proxy: listen tcp4 0.0.0.0:80: bind: address already in use
-1. sudo lsof -i:8080
-2. kill *ID*
-3. ./vendor/bin/sail down
-4. ./vendor/bin/sail up
+
+Error starting userland proxy: listen tcp4 0.0.0.0:80: bind: address already in use
+
+```sh
+sudo lsof -i:8080
+kill *ID*
+./vendor/bin/sail down
+./vendor/bin/sail up
+```

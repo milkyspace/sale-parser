@@ -16,7 +16,7 @@ chmod 777 -R database
 ./vendor/bin/sail artisan schedule:work
 ```
 
-## FIXES
+## Fixes
 
 Error starting userland proxy: listen tcp4 0.0.0.0:80: bind: address already in use
 

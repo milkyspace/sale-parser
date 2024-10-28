@@ -2,7 +2,6 @@
 ## _the telegram bot with discounts_
 
 ![Build Status](https://github.com/cicirello/user-statistician/actions/workflows/build.yml/badge.svg)
-![License](https://camo.githubusercontent.com/1d6003c64bb7ec42e1a5a5de905f193b59b0127a6136004cd52deb59022df51f/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f6c6963656e73652f6369636972656c6c6f2f757365722d73746174697374696369616e)
 
 Discount links are sent to your Telegram
 

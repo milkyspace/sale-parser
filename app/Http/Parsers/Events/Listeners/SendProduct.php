@@ -21,7 +21,6 @@ class SendProduct
 
         $productId = $event->productId;
         $product   = \App\Http\Parsers\Parser::init($productId);
-
         $bot  = \DefStudio\Telegraph\Models\TelegraphBot::where('name', env('TELEGRAM_BOT_NAME'))->first();
         $chat = $bot->chats()->first();
         $html = "
@@ -55,9 +54,7 @@ class SendProduct
         }
 
         /** @var \DefStudio\Telegraph\Models\TelegraphChat $chat */
-        $send = $chat->html($html)->photo($product->getImg())->keyboard(Keyboard::make()->buttons([
-            Button::make('Перейти к скидке')->url($product->getLink()),
-        ]))->send();
+        $send = $chat->html($html)->photo($product->getImg())->send();
 
         \App\Models\Product::updateOrCreate([
             "ext_id" => $product->getExtId(),

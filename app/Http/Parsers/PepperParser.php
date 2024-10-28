@@ -48,10 +48,11 @@ class PepperParser extends Parser
     public function responseParse(\Psr\Http\Message\ResponseInterface $response): void
     {
         $document = new \DiDom\Document((string) $response->getBody());
-        $products = $document->find('article.thread');
+        $products = $document->find('article');
 
         foreach ($products as $product) {
-            $id = $product->attr('id');
+            $id = $product->attr('data-permalink');
+            $id = md5($id);
 
             $productInner = ( new \App\Http\Parsers\Entities\ParserProduct($id) );
 
@@ -59,7 +60,8 @@ class PepperParser extends Parser
                 continue;
             }
 
-            $titleObj = $product->first('a.js-thread-title');
+            $titleBlock = $product->first('.custom-card-title');
+            $titleObj = $titleBlock->first('a');
 
             $title = '';
             $link = '';
@@ -67,39 +69,38 @@ class PepperParser extends Parser
                 $title = $titleObj->text();
                 $link = $titleObj->attr('href');
             }
-
             if ($title === '') {
                 continue;
             }
-
 
             if ($link === '') {
                 continue;
             }
 
-            $imgObj = $product->first('img.thread-image');
+            $imgObj = $product->first('img');
             $imgSrc = '';
-
             if ($imgObj) {
                 $imgSrc = $imgObj->attr('src');
             }
 
+            $priceBlock = $product->first('.flex.items-center.relative.whitespace-nowrap.overflow-hidden');
             $newPrice    = '';
-            $newPriceObj = $product->first('.thread-price');
+            $newPriceObj = $priceBlock->first('.text-lg.font-bold.text-primary.mr-2');
             if ($newPriceObj) {
-                $newPrice = $newPriceObj->text();
+                $newPrice = trim($newPriceObj->text());
             }
 
             $oldPrice    = '';
-            $oldPriceObj = $product->first('.mute--text.text--lineThrough');
+            $oldPriceObj = $priceBlock->first('.text-lg.line-through.text-secondary-text-light.mr-2');
             if ($oldPriceObj) {
-                $oldPrice = $oldPriceObj->text();
+                $oldPrice = trim($oldPriceObj->text());
             }
 
+            $descBlock = $product->first('.row-start-3.col-start-1.col-end-5.text-secondary-text-light.h-auto.flex.items-center.break-long-word');
             $desc    = '';
-            $descObj = $product->first('div.overflow--wrap-break');
+            $descObj = $descBlock->first('span');
             if ($descObj) {
-                $desc = $descObj->text();
+                $desc = trim($descObj->text());
             }
 
             $productInner->setName($title)
@@ -112,6 +113,48 @@ class PepperParser extends Parser
             $fullProduct = $this->save($productInner);
 
             $this->setRealLink($id, $link);
+
+            $product   = \App\Http\Parsers\Parser::init($id);
+            $bot  = \DefStudio\Telegraph\Models\TelegraphBot::where('name', env('TELEGRAM_BOT_NAME'))->first();
+            $chat = $bot->chats()->first();
+            $html = "
+<b>{$product->getName()}</b>";
+
+            if ($product->getPrice()) {
+                $html .= "
+
+Цена: <b>{$product->getPrice()}</b>";
+            }
+
+            if ($product->getOldPrice()) {
+                $html .= "
+Старая цена: {$product->getOldPrice()}";
+            }
+
+            if ($product->getDesc()) {
+                $html .= "
+
+{$product->getDesc()}
+";
+            }
+
+            $productFromBd = \Illuminate\Support\Facades\DB::table('products')
+                ->where('ext_id', '=', $product->getExtId())
+                ->where('posted', '=', true)
+                ->get();
+
+            if ($productFromBd->count() > 0) {
+                return;
+            }
+
+            /** @var \DefStudio\Telegraph\Models\TelegraphChat $chat */
+            $send = $chat->html($html)->photo($product->getImg())->send();
+
+            \App\Models\Product::updateOrCreate([
+                "ext_id" => $product->getExtId(),
+            ], [
+                "posted" => true,
+            ]);
         }
     }
 

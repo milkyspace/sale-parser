@@ -19,10 +19,10 @@ class PepperParser extends Parser
      */
     private function setRealLink($id, $link): void
     {
-        $loop   = \React\EventLoop\Loop::get();
+        $loop = \React\EventLoop\Loop::get();
         $client = new \Clue\React\Buzz\Browser($loop);
         $client = $client->withFollowRedirects(false);
-        $linkRedirects = "https://www.pepper.ru/visit/threadmain/".str_replace("thread_", "", $id);
+        $linkRedirects = $link;
         $client->get($linkRedirects)->then(function (\Psr\Http\Message\ResponseInterface $response) use ($id) {
             $query = parse_url($response->getHeader('Location')[0], PHP_URL_QUERY);
             parse_str($query, $params);
@@ -32,7 +32,7 @@ class PepperParser extends Parser
                 return;
             }
 
-            $product     = ( new \App\Http\Parsers\Entities\ParserProduct($id) )->setLink($realUrl);
+            $product = (new \App\Http\Parsers\Entities\ParserProduct($id))->setLink($realUrl);
             $productFull = $this->save($product);
             \App\Http\Parsers\Events\OnProductCreate::dispatch($id);
         });
@@ -47,14 +47,14 @@ class PepperParser extends Parser
      */
     public function responseParse(\Psr\Http\Message\ResponseInterface $response): void
     {
-        $document = new \DiDom\Document((string) $response->getBody());
+        $document = new \DiDom\Document((string)$response->getBody());
         $products = $document->find('article');
 
         foreach ($products as $product) {
             $id = $product->attr('data-permalink');
             $id = md5($id);
 
-            $productInner = ( new \App\Http\Parsers\Entities\ParserProduct($id) );
+            $productInner = (new \App\Http\Parsers\Entities\ParserProduct($id));
 
             if ($this->checkExist($productInner)) {
                 continue;
@@ -62,13 +62,17 @@ class PepperParser extends Parser
 
             $titleBlock = $product->first('.custom-card-title');
             $titleObj = $titleBlock->first('a');
+            $linkObj = $product->first('a.w-full.h-full.flex.justify-center.items-center.gtm_buy_now_homepage');
 
             $title = '';
             $link = '';
-            if($titleObj) {
+            if ($titleObj) {
                 $title = $titleObj->text();
-                $link = $titleObj->attr('href');
             }
+            if ($linkObj) {
+                $link = $linkObj->attr('href');
+            }
+
             if ($title === '') {
                 continue;
             }
@@ -84,20 +88,20 @@ class PepperParser extends Parser
             }
 
             $priceBlock = $product->first('.flex.items-center.relative.whitespace-nowrap.overflow-hidden');
-            $newPrice    = '';
+            $newPrice = '';
             $newPriceObj = $priceBlock->first('.text-lg.font-bold.text-primary.mr-2');
             if ($newPriceObj) {
                 $newPrice = trim($newPriceObj->text());
             }
 
-            $oldPrice    = '';
+            $oldPrice = '';
             $oldPriceObj = $priceBlock->first('.text-lg.line-through.text-secondary-text-light.mr-2');
             if ($oldPriceObj) {
                 $oldPrice = trim($oldPriceObj->text());
             }
 
             $descBlock = $product->first('.row-start-3.col-start-1.col-end-5.text-secondary-text-light.h-auto.flex.items-center.break-long-word');
-            $desc    = '';
+            $desc = '';
             $descObj = $descBlock->first('span');
             if ($descObj) {
                 $desc = trim($descObj->text());
@@ -113,48 +117,6 @@ class PepperParser extends Parser
             $fullProduct = $this->save($productInner);
 
             $this->setRealLink($id, $link);
-
-            $product   = \App\Http\Parsers\Parser::init($id);
-            $bot  = \DefStudio\Telegraph\Models\TelegraphBot::where('name', env('TELEGRAM_BOT_NAME'))->first();
-            $chat = $bot->chats()->first();
-            $html = "
-<b>{$product->getName()}</b>";
-
-            if ($product->getPrice()) {
-                $html .= "
-
-Цена: <b>{$product->getPrice()}</b>";
-            }
-
-            if ($product->getOldPrice()) {
-                $html .= "
-Старая цена: {$product->getOldPrice()}";
-            }
-
-            if ($product->getDesc()) {
-                $html .= "
-
-{$product->getDesc()}
-";
-            }
-
-            $productFromBd = \Illuminate\Support\Facades\DB::table('products')
-                ->where('ext_id', '=', $product->getExtId())
-                ->where('posted', '=', true)
-                ->get();
-
-            if ($productFromBd->count() > 0) {
-                return;
-            }
-
-            /** @var \DefStudio\Telegraph\Models\TelegraphChat $chat */
-            $send = $chat->html($html)->photo($product->getImg())->send();
-
-            \App\Models\Product::updateOrCreate([
-                "ext_id" => $product->getExtId(),
-            ], [
-                "posted" => true,
-            ]);
         }
     }
 

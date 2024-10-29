@@ -20,8 +20,8 @@ class SendProduct
         // \App\Jobs\ProductSend::dispatch($event->product); Queue
 
         $productId = $event->productId;
-        $product   = \App\Http\Parsers\Parser::init($productId);
-        $bot  = \DefStudio\Telegraph\Models\TelegraphBot::where('name', env('TELEGRAM_BOT_NAME'))->first();
+        $product = \App\Http\Parsers\Parser::init($productId);
+        $bot = \DefStudio\Telegraph\Models\TelegraphBot::where('name', env('TELEGRAM_BOT_NAME'))->first();
         $chat = $bot->chats()->first();
         $html = "
 <b>{$product->getName()}</b>";
@@ -54,7 +54,12 @@ class SendProduct
         }
 
         /** @var \DefStudio\Telegraph\Models\TelegraphChat $chat */
-        $send = $chat->html($html)->photo($product->getImg())->send();
+        $send = $chat
+            ->html($html)
+            ->photo($product->getImg())
+            ->keyboard(Keyboard::make()->buttons([
+                Button::make('Перейти к скидке')->url($product->getLink()),
+            ]))->send();
 
         \App\Models\Product::updateOrCreate([
             "ext_id" => $product->getExtId(),
